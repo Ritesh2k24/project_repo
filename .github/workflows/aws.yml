@@ -1,0 +1,27 @@
+name: Deploy Medusa Backend
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Login to AWS ECR
+        run: |
+          echo "${{ secrets.AWS_ACCESS_KEY_ID }}" | docker login --username AWS --password-stdin ${{ secrets.AWS_ECR_URI }}
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t ${{ secrets.AWS_ECR_URI }}:latest .
+          docker push ${{ secrets.AWS_ECR_URI }}:latest
+
+      - name: Update ECS Service
+        run: |
+          aws ecs update-service --cluster medusa-cluster --service medusa-service --force-new-deployment
